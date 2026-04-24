@@ -39,6 +39,8 @@
       </div>
     </div>
 
+    <DigitTray :board="board" />
+
     <div v-if="won" class="win-banner">puzzle solved!</div>
 
     <div v-show="cmdMode || vimMode" class="statusline">
@@ -68,6 +70,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useSudoku, type Difficulty, type Direction } from './composables/useSudoku'
+import DigitTray from './components/DigitTray.vue'
 
 type VimMode = 'normal' | 'insert'
 

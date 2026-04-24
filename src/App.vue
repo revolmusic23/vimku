@@ -200,7 +200,6 @@ function execCmd(cmd: string) {
 }
 
 function onKey(e: KeyboardEvent) {
-  if (e.isComposing) return
   const key = e.key
 
   if (showHelp.value) {
@@ -211,6 +210,7 @@ function onKey(e: KeyboardEvent) {
 
   // Command mode takes priority
   if (cmdMode.value) {
+    if (e.isComposing) return
     e.preventDefault()
     if (key === 'Escape') {
       cmdMode.value = false

@@ -41,3 +41,16 @@
 - conflict 用 `computed` 算，不要手動維護
 - keybinding 集中在一個地方管理（不要散落各 component）
 - 不要過度 component 拆分，簡單就好
+
+## `:` Command Mode（待實作）
+
+- `:` 全局開啟 command bar（statusline 位置），`Esc` 取消，`Enter` 執行
+- 支援指令：`new`、`easy`、`medium`、`hard`、`hint`、`help`
+- `Tab` 補全
+- **Hint 刻意只開放 `:hint`**，避免使用者不小心點到按鈕
+
+## 效能與手機注意事項
+
+- `generatePuzzle` 使用 backtracking + `countSolutions` 確保唯一解，hard 難度偶爾耗時較長
+- 目標支援手機，RWD 實作時需留意：puzzle 生成不能 block UI，必要時考慮 Web Worker
+- 手機操作以觸控為主，vim mode 對手機無意義，觸控時數字輸入要直覺（點格子後跳出數字鍵盤或 overlay）

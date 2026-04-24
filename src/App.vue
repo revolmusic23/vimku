@@ -47,15 +47,28 @@
       puzzle solved!
     </div>
 
-    <div class="statusline">
-      <span v-if="vimMode" class="mode-label" :class="mode">-- {{ mode.toUpperCase() }} --</span>
-      <span v-if="vimMode && countBuf" class="count-buf">{{ countBuf }}</span>
+    <div v-show="cmdMode || vimMode" class="statusline">
+      <template v-if="cmdMode">
+        <span class="cmd-bar">:{{ cmdBuf }}<span class="cmd-cursor">_</span></span>
+        <span v-if="cmdHint" class="cmd-hint">{{ cmdHint }}</span>
+      </template>
+      <template v-else>
+        <span v-if="vimMode" class="mode-label" :class="mode">-- {{ mode.toUpperCase() }} --</span>
+        <span v-if="vimMode && countBuf" class="count-buf">{{ countBuf }}</span>
+      </template>
+    </div>
+
+    <div v-if="showHelp" class="help-panel">
+      <div class="help-row" v-for="entry in HELP_ENTRIES" :key="entry.key">
+        <span class="help-cmd">{{ entry.cmd ? ':' : ' ' }}{{ entry.key }}</span>
+        <span class="help-desc">{{ entry.desc }}</span>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useSudoku } from './composables/useSudoku.js'
 
 const {
@@ -67,6 +80,30 @@ const {
 const vimMode = ref(false)
 const mode = ref('normal')
 const countBuf = ref('')
+const cmdMode = ref(false)
+const cmdBuf = ref('')
+const showHelp = ref(false)
+
+const COMMANDS = ['easy', 'hard', 'help', 'hint', 'medium', 'new']
+
+const HELP_ENTRIES = [
+  { key: 'new',    cmd: true,  desc: 'new game (current difficulty)' },
+  { key: 'easy',   cmd: true,  desc: 'new easy game' },
+  { key: 'medium', cmd: true,  desc: 'new medium game' },
+  { key: 'hard',   cmd: true,  desc: 'new hard game' },
+  { key: 'hint',   cmd: true,  desc: 'reveal selected cell' },
+  { key: 'help',   cmd: true,  desc: 'toggle this help' },
+  { key: '?',      cmd: false, desc: 'toggle this help' },
+  { key: 'v',      cmd: false, desc: 'toggle vim mode' },
+]
+
+const cmdHint = computed(() => {
+  if (!cmdBuf.value) return ''
+  const matches = COMMANDS.filter(c => c.startsWith(cmdBuf.value))
+  if (matches.length === 1 && matches[0] !== cmdBuf.value) return matches[0]
+  if (matches.length > 1) return matches.join('  ')
+  return ''
+})
 
 onMounted(() => {
   newGame()
@@ -111,8 +148,70 @@ function isHighlighted(idx) {
   return sRow === iRow || sCol === iCol
 }
 
+function execCmd(cmd) {
+  switch (cmd) {
+    case 'new':    newGame(difficulty.value); break
+    case 'easy':   newGame('easy'); break
+    case 'medium': newGame('medium'); break
+    case 'hard':   newGame('hard'); break
+    case 'hint':   hint(); break
+    case 'help':   showHelp.value = !showHelp.value; break
+  }
+}
+
 function onKey(e) {
   const key = e.key
+
+  // Command mode takes priority
+  if (cmdMode.value) {
+    e.preventDefault()
+    if (key === 'Escape') {
+      cmdMode.value = false
+      cmdBuf.value = ''
+      return
+    }
+    if (key === 'Enter') {
+      execCmd(cmdBuf.value.trim())
+      cmdMode.value = false
+      cmdBuf.value = ''
+      return
+    }
+    if (key === 'Backspace') {
+      cmdBuf.value = cmdBuf.value.slice(0, -1)
+      return
+    }
+    if (key === 'Tab') {
+      const match = COMMANDS.find(c => c.startsWith(cmdBuf.value) && c !== cmdBuf.value)
+      if (match) cmdBuf.value = match
+      return
+    }
+    if (key.length === 1) {
+      cmdBuf.value += key
+      return
+    }
+    return
+  }
+
+  if (key === '?') {
+    e.preventDefault()
+    showHelp.value = !showHelp.value
+    return
+  }
+
+  if (key === 'v') {
+    toggleVimMode()
+    return
+  }
+
+  // Enter command mode
+  if (key === ':') {
+    e.preventDefault()
+    cmdMode.value = true
+    cmdBuf.value = ''
+    countBuf.value = ''
+    mode.value = 'normal'
+    return
+  }
 
   if (!vimMode.value) {
     if (['h', 'j', 'k', 'l'].includes(key)) {
@@ -277,12 +376,48 @@ h1 {
   letter-spacing: 0.1em;
 }
 
+.help-panel {
+  width: 468px;
+  border: 1px solid var(--overlay0);
+  padding: 0.5rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.help-row {
+  display: flex;
+  gap: 1.5rem;
+  font-size: 0.85rem;
+}
+
+.help-cmd  { color: var(--yellow); min-width: 8ch; }
+.help-desc { color: var(--subtext0); }
+
 .statusline {
-  width: 468px; /* 9 * 52px */
+  width: 468px;
   min-height: 1.4rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
+}
+
+.cmd-bar {
+  font-size: 0.85rem;
+  color: var(--text);
+}
+
+.cmd-cursor {
+  animation: blink 1s step-end infinite;
+}
+
+@keyframes blink {
+  50% { opacity: 0; }
+}
+
+.cmd-hint {
+  font-size: 0.8rem;
+  color: var(--overlay1);
 }
 
 .count-buf {

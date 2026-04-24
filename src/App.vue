@@ -113,13 +113,23 @@ const cmdHint = computed(() => {
   return ''
 })
 
+function onCompositionStart() {
+  console.log('[compositionstart] cmdMode:', cmdMode.value)
+  if (cmdMode.value) {
+    cmdMode.value = false
+    cmdBuf.value = ''
+  }
+}
+
 onMounted(() => {
   newGame()
   window.addEventListener('keydown', onKey)
+  window.addEventListener('compositionstart', onCompositionStart)
 })
 
 onUnmounted(() => {
   window.removeEventListener('keydown', onKey)
+  window.removeEventListener('compositionstart', onCompositionStart)
 })
 
 function toggleVimMode() {
@@ -168,6 +178,8 @@ function execCmd(cmd) {
 }
 
 function onKey(e) {
+  console.log('[keydown]', JSON.stringify(e.key), 'isComposing:', e.isComposing, 'cmdMode:', cmdMode.value)
+  if (e.isComposing) return
   const key = e.key
 
   if (showHelp.value) {
@@ -199,9 +211,8 @@ function onKey(e) {
       if (match) cmdBuf.value = match
       return
     }
-    if (key.length === 1) {
+    if (key.length === 1 && key.charCodeAt(0) < 128) {
       cmdBuf.value += key
-      return
     }
     return
   }

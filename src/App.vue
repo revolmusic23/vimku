@@ -41,7 +41,16 @@
 
     <DigitTray :board="board" />
 
-    <div v-if="won" class="win-banner">puzzle solved!</div>
+    <div v-if="showSolved" class="solved-overlay">
+      <div class="solved-box">
+        <div class="solved-title">solved</div>
+        <div class="help-row">
+          <span class="help-cmd">n</span>
+          <span class="help-desc">new game</span>
+        </div>
+        <div class="help-close">Esc to review board</div>
+      </div>
+    </div>
 
     <div v-show="cmdMode || vimMode" class="statusline">
       <template v-if="cmdMode">
@@ -83,7 +92,7 @@ const {
   difficulty,
   won,
   conflicts,
-  newGame,
+  newGame: _newGame,
   setCell,
   clearCell,
   undo,
@@ -98,6 +107,12 @@ const countBuf = ref('')
 const cmdMode = ref(false)
 const cmdBuf = ref('')
 const showHelp = ref(false)
+const showSolved = ref(false)
+
+function newGame(d?: Difficulty) {
+  _newGame(d)
+  showSolved.value = false
+}
 
 const COMMANDS = ['easy', 'hard', 'help', 'hint', 'medium', 'new']
 
@@ -208,6 +223,17 @@ function execCmd(cmd: string) {
 function onKey(e: KeyboardEvent) {
   const key = e.key
 
+  if (showSolved.value) {
+    e.preventDefault()
+    if (key === 'Escape') {
+      showSolved.value = false
+    } else if (key === 'n' || key === 'N') {
+      newGame(difficulty.value)
+      showSolved.value = false
+    }
+    return
+  }
+
   if (showHelp.value) {
     e.preventDefault()
     if (key === 'Escape' || key === '?') showHelp.value = false
@@ -294,6 +320,7 @@ function onKey(e: KeyboardEvent) {
     if (selected.value === null) return
     if (key >= '1' && key <= '9') {
       setCell(selected.value, parseInt(key))
+      if (won.value) showSolved.value = true
       return
     }
     if (key === 'x' || key === 'Delete' || key === 'Backspace') {
@@ -416,6 +443,7 @@ function onKey(e: KeyboardEvent) {
     if (selected.value === null) return
     if (key >= '1' && key <= '9') {
       setCell(selected.value, parseInt(key))
+      if (won.value) showSolved.value = true
       return
     }
     if (key === 'x' || key === 'Delete' || key === 'Backspace') {
@@ -531,12 +559,30 @@ h1 {
   line-height: 1;
 }
 
-.win-banner {
+.solved-overlay {
+  position: fixed;
+  inset: 0;
+  background: color-mix(in srgb, var(--base) 90%, transparent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.solved-box {
   border: 1px solid var(--green);
+  padding: 1rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 20ch;
+}
+
+.solved-title {
   color: var(--green);
-  padding: 0.5rem 2rem;
   font-size: 1.1rem;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.15em;
+  margin-bottom: 0.25rem;
 }
 
 .help-overlay {

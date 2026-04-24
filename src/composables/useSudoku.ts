@@ -164,6 +164,26 @@ export function useSudoku() {
     })
   }
 
+  function clearPeerNotes(idx: number, num: number) {
+    const row = Math.floor(idx / 9)
+    const col = idx % 9
+    const boxRow = Math.floor(row / 3) * 3
+    const boxCol = Math.floor(col / 3) * 3
+    const peers = new Set<number>()
+    for (let c = 0; c < 9; c++) peers.add(row * 9 + c)
+    for (let r = 0; r < 9; r++) peers.add(r * 9 + col)
+    for (let r = 0; r < 3; r++)
+      for (let c = 0; c < 3; c++) peers.add((boxRow + r) * 9 + (boxCol + c))
+    peers.delete(idx)
+    for (const p of peers) {
+      if (notes.value[p].has(num)) {
+        const s = new Set(notes.value[p])
+        s.delete(num)
+        notes.value[p] = s
+      }
+    }
+  }
+
   function setCell(idx: number, num: number) {
     if (given.value[idx]) return
     pushHistory()
@@ -175,6 +195,7 @@ export function useSudoku() {
     } else {
       board.value[idx] = num
       notes.value[idx] = new Set()
+      clearPeerNotes(idx, num)
       checkWin()
     }
   }
@@ -201,6 +222,7 @@ export function useSudoku() {
     pushHistory()
     board.value[idx] = solution.value[idx]
     notes.value[idx] = new Set()
+    clearPeerNotes(idx, solution.value[idx])
     checkWin()
   }
 

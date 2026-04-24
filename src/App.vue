@@ -58,10 +58,14 @@
       </template>
     </div>
 
-    <div v-if="showHelp" class="help-panel">
-      <div class="help-row" v-for="entry in HELP_ENTRIES" :key="entry.key">
-        <span class="help-cmd">{{ entry.cmd ? ':' : ' ' }}{{ entry.key }}</span>
-        <span class="help-desc">{{ entry.desc }}</span>
+    <div v-if="showHelp" class="help-overlay">
+      <div class="help-box">
+        <div class="help-title">help</div>
+        <div class="help-row" v-for="entry in HELP_ENTRIES" :key="entry.key">
+          <span class="help-cmd">{{ entry.key }}</span>
+          <span class="help-desc">{{ entry.desc }}</span>
+        </div>
+        <div class="help-close">Esc / ? to close</div>
       </div>
     </div>
   </div>
@@ -87,14 +91,18 @@ const showHelp = ref(false)
 const COMMANDS = ['easy', 'hard', 'help', 'hint', 'medium', 'new']
 
 const HELP_ENTRIES = [
-  { key: 'new',    cmd: true,  desc: 'new game (current difficulty)' },
-  { key: 'easy',   cmd: true,  desc: 'new easy game' },
-  { key: 'medium', cmd: true,  desc: 'new medium game' },
-  { key: 'hard',   cmd: true,  desc: 'new hard game' },
-  { key: 'hint',   cmd: true,  desc: 'reveal selected cell' },
-  { key: 'help',   cmd: true,  desc: 'toggle this help' },
-  { key: '?',      cmd: false, desc: 'toggle this help' },
-  { key: 'v',      cmd: false, desc: 'toggle vim mode' },
+  { key: 'hjkl',        desc: 'move cursor' },
+  { key: '1-9',         desc: 'fill digit' },
+  { key: 'x / Del',     desc: 'clear cell' },
+  { key: 'u',           desc: 'undo' },
+  { key: 'n',           desc: 'toggle note mode' },
+  { key: 'v',           desc: 'toggle vim mode' },
+  { key: 'i',           desc: 'enter insert mode (vim)' },
+  { key: 'Esc',         desc: 'normal mode (vim)' },
+  { key: ':new',        desc: 'new game' },
+  { key: ':easy/medium/hard', desc: 'new game with difficulty' },
+  { key: ':hint',       desc: 'reveal selected cell' },
+  { key: ':help / ?',   desc: 'toggle this help' },
 ]
 
 const cmdHint = computed(() => {
@@ -161,6 +169,12 @@ function execCmd(cmd) {
 
 function onKey(e) {
   const key = e.key
+
+  if (showHelp.value) {
+    e.preventDefault()
+    if (key === 'Escape' || key === '?') showHelp.value = false
+    return
+  }
 
   // Command mode takes priority
   if (cmdMode.value) {
@@ -376,13 +390,30 @@ h1 {
   letter-spacing: 0.1em;
 }
 
-.help-panel {
-  width: 468px;
+.help-overlay {
+  position: fixed;
+  inset: 0;
+  background: color-mix(in srgb, var(--base) 90%, transparent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.help-box {
   border: 1px solid var(--overlay0);
-  padding: 0.5rem 0.75rem;
+  padding: 1rem 1.5rem;
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 0.35rem;
+  min-width: 28ch;
+}
+
+.help-title {
+  color: var(--lavender);
+  font-size: 0.9rem;
+  letter-spacing: 0.1em;
+  margin-bottom: 0.25rem;
 }
 
 .help-row {
@@ -391,8 +422,15 @@ h1 {
   font-size: 0.85rem;
 }
 
-.help-cmd  { color: var(--yellow); min-width: 8ch; }
+.help-cmd  { color: var(--yellow); min-width: 20ch; }
 .help-desc { color: var(--subtext0); }
+
+.help-close {
+  margin-top: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--overlay1);
+  text-align: right;
+}
 
 .statusline {
   width: 468px;

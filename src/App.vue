@@ -81,7 +81,7 @@ const {
   newGame, setCell, clearCell, undo, hint, move,
 } = useSudoku()
 
-const vimMode = ref(false)
+const vimMode = ref(true)
 const mode = ref('normal')
 const countBuf = ref('')
 const cmdMode = ref(false)
@@ -97,7 +97,7 @@ const HELP_ENTRIES = [
   { key: 'u',           desc: 'undo' },
   { key: 'n',           desc: 'toggle note mode' },
   { key: 'v',           desc: 'toggle vim mode' },
-  { key: 'i',           desc: 'enter insert mode (vim)' },
+  { key: 'i / a',       desc: 'enter insert mode (vim)' },
   { key: 'Esc',         desc: 'normal mode (vim)' },
   { key: ':new',        desc: 'new game' },
   { key: ':easy/medium/hard', desc: 'new game with difficulty' },
@@ -114,7 +114,6 @@ const cmdHint = computed(() => {
 })
 
 function onCompositionStart() {
-  console.log('[compositionstart] cmdMode:', cmdMode.value)
   if (cmdMode.value) {
     cmdMode.value = false
     cmdBuf.value = ''
@@ -178,7 +177,6 @@ function execCmd(cmd) {
 }
 
 function onKey(e) {
-  console.log('[keydown]', JSON.stringify(e.key), 'isComposing:', e.isComposing, 'cmdMode:', cmdMode.value)
   if (e.isComposing) return
   const key = e.key
 
@@ -271,7 +269,7 @@ function onKey(e) {
       countBuf.value = ''
       return
     }
-    if (key === 'i') {
+    if (key === 'i' || key === 'a') {
       e.preventDefault()
       if (selected.value === null) selected.value = 0
       mode.value = 'insert'
@@ -293,11 +291,6 @@ function onKey(e) {
     if (key === 'Escape') {
       e.preventDefault()
       mode.value = 'normal'
-      return
-    }
-    if (['h', 'j', 'k', 'l'].includes(key)) {
-      e.preventDefault()
-      move(key)
       return
     }
     if (selected.value === null) return

@@ -81,10 +81,7 @@ function isHighlighted(idx) {
   if (sel === null) return false
   const sRow = Math.floor(sel / 9), sCol = sel % 9
   const iRow = Math.floor(idx / 9), iCol = idx % 9
-  if (sRow === iRow || sCol === iCol) return true
-  const sBox = Math.floor(sRow / 3) * 3 + Math.floor(sCol / 3)
-  const iBox = Math.floor(iRow / 3) * 3 + Math.floor(iCol / 3)
-  return sBox === iBox
+  return sRow === iRow || sCol === iCol
 }
 
 function onKey(e) {
@@ -153,13 +150,13 @@ h1 {
   display: grid;
   grid-template-columns: repeat(9, 52px);
   grid-template-rows: repeat(9, 52px);
-  border: 2px solid var(--surface2);
+  border: 2px solid var(--overlay0);
 }
 
 .cell {
   width: 52px;
   height: 52px;
-  border: 1px solid var(--surface0);
+  border: 1px solid color-mix(in srgb, var(--surface0) 50%, var(--surface1));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -168,11 +165,11 @@ h1 {
   user-select: none;
 }
 
-.cell.box-right  { border-right:  2px solid var(--surface2); }
-.cell.box-bottom { border-bottom: 2px solid var(--surface2); }
+.cell.box-right  { border-right:  2px solid var(--overlay0); }
+.cell.box-bottom { border-bottom: 2px solid var(--overlay0); }
 
 .cell.highlight  { background: var(--surface0); }
-.cell.selected   { background: var(--surface1); }
+.cell.selected   { background: color-mix(in srgb, var(--peach) 40%, var(--base)); }
 
 .cell.given .digit  { color: var(--subtext1); }
 .cell:not(.given) .digit { color: var(--blue); }

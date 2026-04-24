@@ -104,7 +104,7 @@ export function useSudoku() {
     const result = generatePuzzle(diff)
     board.value = result.puzzle
     solution.value = result.solution
-    given.value = result.puzzle.map(v => v !== 0)
+    given.value = result.puzzle.map((v) => v !== 0)
     notes.value = Array.from({ length: 81 }, () => new Set())
     history.value = []
     selected.value = null
@@ -124,16 +124,25 @@ export function useSudoku() {
 
       for (let c = 0; c < 9; c++) {
         const j = row * 9 + c
-        if (j !== i && board.value[j] === v) { set.add(i); set.add(j) }
+        if (j !== i && board.value[j] === v) {
+          set.add(i)
+          set.add(j)
+        }
       }
       for (let r = 0; r < 9; r++) {
         const j = r * 9 + col
-        if (j !== i && board.value[j] === v) { set.add(i); set.add(j) }
+        if (j !== i && board.value[j] === v) {
+          set.add(i)
+          set.add(j)
+        }
       }
       for (let r = 0; r < 3; r++) {
         for (let c = 0; c < 3; c++) {
           const j = (boxRow + r) * 9 + (boxCol + c)
-          if (j !== i && board.value[j] === v) { set.add(i); set.add(j) }
+          if (j !== i && board.value[j] === v) {
+            set.add(i)
+            set.add(j)
+          }
         }
       }
     }
@@ -143,7 +152,7 @@ export function useSudoku() {
   function pushHistory() {
     history.value.push({
       board: [...board.value],
-      notes: notes.value.map(s => new Set(s)),
+      notes: notes.value.map((s) => new Set(s)),
     })
   }
 
@@ -194,7 +203,10 @@ export function useSudoku() {
   }
 
   function move(dir) {
-    if (selected.value === null) { selected.value = 0; return }
+    if (selected.value === null) {
+      selected.value = 0
+      return
+    }
     const idx = selected.value
     const row = Math.floor(idx / 9)
     const col = idx % 9
@@ -205,8 +217,20 @@ export function useSudoku() {
   }
 
   return {
-    board, solution, given, notes, selected,
-    noteMode, difficulty, won, conflicts,
-    newGame, setCell, clearCell, undo, hint, move,
+    board,
+    solution,
+    given,
+    notes,
+    selected,
+    noteMode,
+    difficulty,
+    won,
+    conflicts,
+    newGame,
+    setCell,
+    clearCell,
+    undo,
+    hint,
+    move,
   }
 }

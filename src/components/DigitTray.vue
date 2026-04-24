@@ -101,13 +101,13 @@ const remainingCounts = computed(() => {
 
 /* ── mobile ── */
 .digit-tray.mobile {
-  position: fixed;
+  width: 100%;
   bottom: 0;
   left: 0;
   right: 0;
   background: var(--mantle);
   border-top: 1px solid var(--surface1);
-  padding: 0.4rem 0.5rem;
+  padding: 1px;
   padding-bottom: calc(0.4rem + env(safe-area-inset-bottom, 0px));
   z-index: 50;
   display: flex;
@@ -119,6 +119,8 @@ const remainingCounts = computed(() => {
 .note-row {
   display: flex;
   gap: 0.25rem;
+  display: grid;
+  grid-template-columns: repeat(9, 1fr);
 }
 
 .fill-row.inactive,
@@ -127,7 +129,6 @@ const remainingCounts = computed(() => {
 }
 
 .fill-btn {
-  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -174,7 +175,6 @@ const remainingCounts = computed(() => {
 }
 
 .note-btn {
-  flex: 1;
   padding: 0.2rem 0;
   background: transparent;
   border: 1px solid var(--surface0);

@@ -1,5 +1,5 @@
 <template>
-  <div class="app" @keydown="onKey" tabindex="0" ref="appEl">
+  <div class="app">
     <header>
       <h1>vimku</h1>
       <div class="controls">
@@ -47,7 +47,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useSudoku } from './composables/useSudoku.js'
 
 const {
@@ -56,11 +56,13 @@ const {
   newGame, setCell, clearCell, undo, hint, move,
 } = useSudoku()
 
-const appEl = ref(null)
-
 onMounted(() => {
   newGame()
-  appEl.value?.focus()
+  window.addEventListener('keydown', onKey)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('keydown', onKey)
 })
 
 function cellClass(idx) {

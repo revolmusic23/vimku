@@ -1,5 +1,5 @@
 pre-commit:
   commands:
     prettier:
-      glob: "*.{js,vue,css}"
+      glob: "*.{js,ts,vue,css}"
       run: npx prettier --write {staged_files} && git add {staged_files}

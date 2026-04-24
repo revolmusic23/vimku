@@ -1,8 +1,13 @@
 import { ref, computed } from 'vue'
 
+export type Difficulty = 'easy' | 'medium' | 'hard'
+export type Direction = 'h' | 'j' | 'k' | 'l'
+
+type HistoryEntry = { board: number[]; notes: Set<number>[] }
+
 // ── Generator ──────────────────────────────────────────────────────────────
 
-function shuffle(arr) {
+function shuffle<T>(arr: T[]): T[] {
   for (let i = arr.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1))
     ;[arr[i], arr[j]] = [arr[j], arr[i]]
@@ -10,7 +15,7 @@ function shuffle(arr) {
   return arr
 }
 
-function isValid(board, idx, num) {
+function isValid(board: number[], idx: number, num: number): boolean {
   const row = Math.floor(idx / 9)
   const col = idx % 9
   const boxRow = Math.floor(row / 3) * 3
@@ -30,7 +35,7 @@ function isValid(board, idx, num) {
   return true
 }
 
-function solve(board, idx = 0) {
+function solve(board: number[], idx = 0): boolean {
   if (idx === 81) return true
   if (board[idx] !== 0) return solve(board, idx + 1)
 
@@ -44,7 +49,7 @@ function solve(board, idx = 0) {
   return false
 }
 
-function countSolutions(board, idx = 0, limit = 2) {
+function countSolutions(board: number[], idx = 0, limit = 2): number {
   if (idx === 81) return 1
   if (board[idx] !== 0) return countSolutions(board, idx + 1, limit)
 
@@ -60,10 +65,13 @@ function countSolutions(board, idx = 0, limit = 2) {
   return count
 }
 
-const HOLES = { easy: 35, medium: 45, hard: 55 }
+const HOLES: Record<Difficulty, number> = { easy: 35, medium: 45, hard: 55 }
 
-function generatePuzzle(difficulty = 'medium') {
-  const solution = new Array(81).fill(0)
+function generatePuzzle(difficulty: Difficulty = 'medium'): {
+  puzzle: number[]
+  solution: number[]
+} {
+  const solution = new Array<number>(81).fill(0)
   solve(solution)
 
   const puzzle = [...solution]
@@ -89,17 +97,17 @@ function generatePuzzle(difficulty = 'medium') {
 // ── Composable ─────────────────────────────────────────────────────────────
 
 export function useSudoku() {
-  const board = ref(new Array(81).fill(0))
-  const solution = ref(new Array(81).fill(0))
-  const given = ref(new Array(81).fill(false))
-  const notes = ref(Array.from({ length: 81 }, () => new Set()))
-  const selected = ref(null)
+  const board = ref<number[]>(new Array(81).fill(0))
+  const solution = ref<number[]>(new Array(81).fill(0))
+  const given = ref<boolean[]>(new Array(81).fill(false))
+  const notes = ref<Set<number>[]>(Array.from({ length: 81 }, () => new Set()))
+  const selected = ref<number | null>(null)
   const noteMode = ref(false)
-  const difficulty = ref('medium')
-  const history = ref([])
+  const difficulty = ref<Difficulty>('medium')
+  const history = ref<HistoryEntry[]>([])
   const won = ref(false)
 
-  function newGame(diff = difficulty.value) {
+  function newGame(diff: Difficulty = difficulty.value) {
     difficulty.value = diff
     const result = generatePuzzle(diff)
     board.value = result.puzzle
@@ -113,7 +121,7 @@ export function useSudoku() {
   }
 
   const conflicts = computed(() => {
-    const set = new Set()
+    const set = new Set<number>()
     for (let i = 0; i < 81; i++) {
       const v = board.value[i]
       if (!v) continue
@@ -156,7 +164,7 @@ export function useSudoku() {
     })
   }
 
-  function setCell(idx, num) {
+  function setCell(idx: number, num: number) {
     if (given.value[idx]) return
     pushHistory()
     if (noteMode.value) {
@@ -171,7 +179,7 @@ export function useSudoku() {
     }
   }
 
-  function clearCell(idx) {
+  function clearCell(idx: number) {
     if (given.value[idx]) return
     pushHistory()
     board.value[idx] = 0
@@ -180,7 +188,7 @@ export function useSudoku() {
 
   function undo() {
     if (!history.value.length) return
-    const prev = history.value.pop()
+    const prev = history.value.pop()!
     board.value = prev.board
     notes.value = prev.notes
     won.value = false
@@ -202,7 +210,7 @@ export function useSudoku() {
     }
   }
 
-  function move(dir) {
+  function move(dir: Direction) {
     if (selected.value === null) {
       selected.value = 0
       return

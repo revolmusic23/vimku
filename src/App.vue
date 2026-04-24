@@ -65,9 +65,11 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { useSudoku } from './composables/useSudoku.js'
+import { useSudoku, type Difficulty, type Direction } from './composables/useSudoku.ts'
+
+type VimMode = 'normal' | 'insert'
 
 const {
   board,
@@ -87,7 +89,7 @@ const {
 } = useSudoku()
 
 const vimMode = ref(true)
-const mode = ref('normal')
+const mode = ref<VimMode>('normal')
 const countBuf = ref('')
 const cmdMode = ref(false)
 const cmdBuf = ref('')
@@ -142,14 +144,14 @@ function toggleVimMode() {
   countBuf.value = ''
 }
 
-function onCellClick(idx) {
+function onCellClick(idx: number) {
   selected.value = idx
   if (vimMode.value && mode.value === 'normal') {
     mode.value = 'insert'
   }
 }
 
-function cellClass(idx) {
+function cellClass(idx: number) {
   const row = Math.floor(idx / 9)
   const col = idx % 9
   const selVal = selected.value !== null ? board.value[selected.value] : 0
@@ -164,7 +166,7 @@ function cellClass(idx) {
   }
 }
 
-function isHighlighted(idx) {
+function isHighlighted(idx: number) {
   const sel = selected.value
   if (sel === null) return false
   const sRow = Math.floor(sel / 9),
@@ -174,7 +176,7 @@ function isHighlighted(idx) {
   return sRow === iRow || sCol === iCol
 }
 
-function execCmd(cmd) {
+function execCmd(cmd: string) {
   switch (cmd) {
     case 'new':
       newGame(difficulty.value)
@@ -197,7 +199,7 @@ function execCmd(cmd) {
   }
 }
 
-function onKey(e) {
+function onKey(e: KeyboardEvent) {
   if (e.isComposing) return
   const key = e.key
 
@@ -260,7 +262,7 @@ function onKey(e) {
   if (!vimMode.value) {
     if (['h', 'j', 'k', 'l'].includes(key)) {
       e.preventDefault()
-      move(key)
+      move(key as Direction)
       return
     }
     if (selected.value === null) return
@@ -339,7 +341,7 @@ function onKey(e) {
     }
     if (['h', 'j', 'k', 'l'].includes(key)) {
       e.preventDefault()
-      move(key)
+      move(key as Direction)
       return
     }
     if (key === 'n') {

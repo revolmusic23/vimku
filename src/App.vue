@@ -1,5 +1,5 @@
 <template>
-  <div class="app">
+  <div class="app" :class="vimMode ? `vim-${mode}` : ''">
     <header>
       <h1>vimku</h1>
       <div class="controls">
@@ -14,6 +14,9 @@
         <button :class="{ active: noteMode }" @click="noteMode = !noteMode">
           note [n]{{ noteMode ? ' ON' : '' }}
         </button>
+        <button :class="{ active: vimMode }" @click="toggleVimMode">
+          vim{{ vimMode ? ' ON' : '' }}
+        </button>
       </div>
     </header>
 
@@ -23,7 +26,7 @@
         :key="idx"
         class="cell"
         :class="cellClass(idx)"
-        @click="selected = idx"
+        @click="onCellClick(idx)"
       >
         <template v-if="val">
           <span class="digit">{{ val }}</span>
@@ -43,6 +46,11 @@
     <div v-if="won" class="win-banner">
       puzzle solved!
     </div>
+
+    <div class="statusline">
+      <span v-if="vimMode" class="mode-label" :class="mode">-- {{ mode.toUpperCase() }} --</span>
+      <span v-if="vimMode && countBuf" class="count-buf">{{ countBuf }}</span>
+    </div>
   </div>
 </template>
 
@@ -56,6 +64,10 @@ const {
   newGame, setCell, clearCell, undo, hint, move,
 } = useSudoku()
 
+const vimMode = ref(false)
+const mode = ref('normal')
+const countBuf = ref('')
+
 onMounted(() => {
   newGame()
   window.addEventListener('keydown', onKey)
@@ -64,6 +76,19 @@ onMounted(() => {
 onUnmounted(() => {
   window.removeEventListener('keydown', onKey)
 })
+
+function toggleVimMode() {
+  vimMode.value = !vimMode.value
+  mode.value = 'normal'
+  countBuf.value = ''
+}
+
+function onCellClick(idx) {
+  selected.value = idx
+  if (vimMode.value && mode.value === 'normal') {
+    mode.value = 'insert'
+  }
+}
 
 function cellClass(idx) {
   const row = Math.floor(idx / 9)
@@ -89,32 +114,71 @@ function isHighlighted(idx) {
 function onKey(e) {
   const key = e.key
 
-  if (['h', 'j', 'k', 'l'].includes(key)) {
-    e.preventDefault()
-    move(key)
+  if (!vimMode.value) {
+    if (['h', 'j', 'k', 'l'].includes(key)) {
+      e.preventDefault()
+      move(key)
+      return
+    }
+    if (selected.value === null) return
+    if (key >= '1' && key <= '9') { setCell(selected.value, parseInt(key)); return }
+    if (key === 'x' || key === 'Delete' || key === 'Backspace') { clearCell(selected.value); return }
+    if (key === 'u') { undo(); return }
+    if (key === 'n') { noteMode.value = !noteMode.value; return }
     return
   }
 
-  if (selected.value === null) return
-
-  if (key >= '1' && key <= '9') {
-    setCell(selected.value, parseInt(key))
-    return
+  // vim mode ON
+  if (mode.value === 'normal') {
+    if (key >= '1' && key <= '9') {
+      e.preventDefault()
+      countBuf.value += key
+      return
+    }
+    if (key === '0' && countBuf.value) {
+      e.preventDefault()
+      countBuf.value += '0'
+      return
+    }
+    if (['h', 'j', 'k', 'l'].includes(key)) {
+      e.preventDefault()
+      const count = Math.min(parseInt(countBuf.value) || 1, 8)
+      for (let i = 0; i < count; i++) move(key)
+      countBuf.value = ''
+      return
+    }
+    if (key === 'i') {
+      e.preventDefault()
+      if (selected.value === null) selected.value = 0
+      mode.value = 'insert'
+      countBuf.value = ''
+      return
+    }
+    if (key === 'x' || key === 'Delete' || key === 'Backspace') {
+      if (selected.value !== null) clearCell(selected.value)
+      countBuf.value = ''
+      return
+    }
+    if (key === 'u') { undo(); countBuf.value = ''; return }
+    if (key === 'n') { noteMode.value = !noteMode.value; countBuf.value = ''; return }
+    if (key === 'Escape') { countBuf.value = ''; return }
+    countBuf.value = ''
   }
 
-  if (key === 'x' || key === 'Delete' || key === 'Backspace') {
-    clearCell(selected.value)
-    return
-  }
-
-  if (key === 'u') {
-    undo()
-    return
-  }
-
-  if (key === 'n') {
-    noteMode.value = !noteMode.value
-    return
+  if (mode.value === 'insert') {
+    if (key === 'Escape') {
+      e.preventDefault()
+      mode.value = 'normal'
+      return
+    }
+    if (['h', 'j', 'k', 'l'].includes(key)) {
+      e.preventDefault()
+      move(key)
+      return
+    }
+    if (selected.value === null) return
+    if (key >= '1' && key <= '9') { setCell(selected.value, parseInt(key)); return }
+    if (key === 'x' || key === 'Delete' || key === 'Backspace') { clearCell(selected.value); return }
   }
 }
 </script>
@@ -126,6 +190,7 @@ function onKey(e) {
   align-items: center;
   gap: 1.5rem;
   outline: none;
+  position: relative;
 }
 
 header {
@@ -171,7 +236,12 @@ h1 {
 .cell.box-bottom { border-bottom: 2px solid var(--overlay0); }
 
 .cell.highlight  { background: var(--surface0); }
-.cell.selected   { background: color-mix(in srgb, var(--peach) 40%, var(--base)); }
+
+/* default (non-vim) and insert mode: green */
+.cell.selected { background: color-mix(in srgb, var(--green) 35%, var(--base)); }
+
+/* normal mode: peach (can't insert) */
+.vim-normal .cell.selected { background: color-mix(in srgb, var(--peach) 40%, var(--base)); }
 
 .cell.given .digit  { color: var(--subtext1); }
 .cell:not(.given) .digit { color: var(--blue); }
@@ -206,4 +276,25 @@ h1 {
   font-size: 1.1rem;
   letter-spacing: 0.1em;
 }
+
+.statusline {
+  width: 468px; /* 9 * 52px */
+  min-height: 1.4rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.count-buf {
+  font-size: 0.85rem;
+  color: var(--overlay2);
+}
+
+.mode-label {
+  font-size: 0.85rem;
+  letter-spacing: 0.05em;
+}
+
+.mode-label.normal { color: var(--lavender); }
+.mode-label.insert { color: var(--green); }
 </style>

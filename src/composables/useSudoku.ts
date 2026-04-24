@@ -224,6 +224,20 @@ export function useSudoku() {
     if (dir === 'j' && row < 8) selected.value = idx + 9
   }
 
+  function jumpTo(target: 'top' | 'bottom' | 'start' | 'end') {
+    if (selected.value === null) {
+      selected.value = 0
+      return
+    }
+    const idx = selected.value
+    const row = Math.floor(idx / 9)
+    const col = idx % 9
+    if (target === 'top') selected.value = col
+    if (target === 'bottom') selected.value = 72 + col
+    if (target === 'start') selected.value = row * 9
+    if (target === 'end') selected.value = row * 9 + 8
+  }
+
   return {
     board,
     solution,
@@ -240,5 +254,6 @@ export function useSudoku() {
     undo,
     hint,
     move,
+    jumpTo,
   }
 }

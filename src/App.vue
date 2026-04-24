@@ -67,7 +67,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { useSudoku, type Difficulty, type Direction } from './composables/useSudoku.ts'
+import { useSudoku, type Difficulty, type Direction } from './composables/useSudoku'
 
 type VimMode = 'normal' | 'insert'
 
@@ -86,6 +86,7 @@ const {
   undo,
   hint,
   move,
+  jumpTo,
 } = useSudoku()
 
 const vimMode = ref(true)
@@ -99,6 +100,8 @@ const COMMANDS = ['easy', 'hard', 'help', 'hint', 'medium', 'new']
 
 const HELP_ENTRIES = [
   { key: 'hjkl', desc: 'move cursor' },
+  { key: 'g / G', desc: 'jump to top / bottom row' },
+  { key: '0 / $', desc: 'jump to first / last column' },
   { key: '1-9', desc: 'fill digit' },
   { key: 'x / Del', desc: 'clear cell' },
   { key: 'u', desc: 'undo' },
@@ -265,6 +268,26 @@ function onKey(e: KeyboardEvent) {
       move(key as Direction)
       return
     }
+    if (key === 'g') {
+      e.preventDefault()
+      jumpTo('top')
+      return
+    }
+    if (key === 'G') {
+      e.preventDefault()
+      jumpTo('bottom')
+      return
+    }
+    if (key === '0') {
+      e.preventDefault()
+      jumpTo('start')
+      return
+    }
+    if (key === '$') {
+      e.preventDefault()
+      jumpTo('end')
+      return
+    }
     if (selected.value === null) return
     if (key >= '1' && key <= '9') {
       setCell(selected.value, parseInt(key))
@@ -292,15 +315,34 @@ function onKey(e: KeyboardEvent) {
       countBuf.value += key
       return
     }
-    if (key === '0' && countBuf.value) {
+    if (key === '0') {
       e.preventDefault()
-      countBuf.value += '0'
+      jumpTo('start')
+      countBuf.value = ''
+      return
+    }
+    if (key === '$') {
+      e.preventDefault()
+      jumpTo('end')
+      countBuf.value = ''
+      return
+    }
+    if (key === 'g') {
+      e.preventDefault()
+      jumpTo('top')
+      countBuf.value = ''
+      return
+    }
+    if (key === 'G') {
+      e.preventDefault()
+      jumpTo('bottom')
+      countBuf.value = ''
       return
     }
     if (['h', 'j', 'k', 'l'].includes(key)) {
       e.preventDefault()
       const count = Math.min(parseInt(countBuf.value) || 1, 8)
-      for (let i = 0; i < count; i++) move(key)
+      for (let i = 0; i < count; i++) move(key as Direction)
       countBuf.value = ''
       return
     }
@@ -344,6 +386,26 @@ function onKey(e: KeyboardEvent) {
       move(key as Direction)
       return
     }
+    if (key === 'g') {
+      e.preventDefault()
+      jumpTo('top')
+      return
+    }
+    if (key === 'G') {
+      e.preventDefault()
+      jumpTo('bottom')
+      return
+    }
+    if (key === '0') {
+      e.preventDefault()
+      jumpTo('start')
+      return
+    }
+    if (key === '$') {
+      e.preventDefault()
+      jumpTo('end')
+      return
+    }
     if (key === 'n') {
       noteMode.value = !noteMode.value
       return
@@ -366,7 +428,7 @@ function onKey(e: KeyboardEvent) {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1.5rem;
+  gap: 1rem;
   outline: none;
   position: relative;
 }

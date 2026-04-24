@@ -38,6 +38,8 @@
 - [x] DigitTray（顯示 1-9 各數字剩餘數量，全填完時變灰）
 - [x] `:` Command Mode（支援 `new`、`easy`、`medium`、`hard`、`hint`、`help`，Tab 補全）
 - [ ] RWD（手機版可玩，觸控輸入數字）
+- [ ] `:theme` 切換其他終端機主題
+- [ ] 預設在第一排第一格？現在預設不會 selected
 
 ## 架構原則
 

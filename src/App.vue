@@ -47,7 +47,13 @@
         </template>
         <template v-else-if="notes[idx].size">
           <div class="notes">
-            <span v-for="n in 9" :key="n" class="note-digit">{{ notes[idx].has(n) ? n : '' }}</span>
+            <span
+              v-for="n in 9"
+              :key="n"
+              class="note-digit"
+              :class="{ 'note-match': notes[idx].has(n) && selectedDigit === n }"
+              >{{ notes[idx].has(n) ? n : '' }}</span
+            >
           </div>
         </template>
       </div>
@@ -229,10 +235,12 @@ function onTrayFillNote(d: number) {
   noteMode.value = prev
 }
 
+const selectedDigit = computed(() => (selected.value !== null ? board.value[selected.value] : 0))
+
 function cellClass(idx: number) {
   const row = Math.floor(idx / 9)
   const col = idx % 9
-  const selVal = selected.value !== null ? board.value[selected.value] : 0
+  const selVal = selectedDigit.value
   return {
     selected: selected.value === idx,
     given: given.value[idx],
@@ -580,12 +588,12 @@ h1 {
   background: var(--surface0);
 }
 .cell.same-digit {
-  background: color-mix(in srgb, var(--peach) 18%, var(--base));
+  background: color-mix(in srgb, var(--peach) 30%, var(--base));
 }
 
 /* default (non-vim) and insert mode: green */
 .cell.selected {
-  background: color-mix(in srgb, var(--green) 35%, var(--base));
+  background: color-mix(in srgb, var(--green) 30%, var(--base));
 }
 
 /* normal mode: peach (can't insert) */
@@ -623,6 +631,11 @@ h1 {
   align-items: center;
   justify-content: center;
   line-height: 1;
+}
+
+.note-digit.note-match {
+  background: color-mix(in srgb, var(--peach) 30%, var(--base));
+  color: var(--text);
 }
 
 .solved-overlay {

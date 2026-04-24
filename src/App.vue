@@ -147,11 +147,13 @@ function onCellClick(idx) {
 function cellClass(idx) {
   const row = Math.floor(idx / 9)
   const col = idx % 9
+  const selVal = selected.value !== null ? board.value[selected.value] : 0
   return {
     selected: selected.value === idx,
     given: given.value[idx],
     conflict: conflicts.value.has(idx),
     highlight: selected.value !== null && isHighlighted(idx),
+    'same-digit': selVal && board.value[idx] === selVal && selected.value !== idx,
     'box-right': col === 2 || col === 5,
     'box-bottom': row === 2 || row === 5,
   }
@@ -353,6 +355,7 @@ h1 {
 .cell.box-bottom { border-bottom: 2px solid var(--overlay0); }
 
 .cell.highlight  { background: var(--surface0); }
+.cell.same-digit { background: color-mix(in srgb, var(--peach) 18%, var(--base)); }
 
 /* default (non-vim) and insert mode: green */
 .cell.selected { background: color-mix(in srgb, var(--green) 35%, var(--base)); }

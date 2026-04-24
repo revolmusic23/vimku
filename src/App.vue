@@ -346,6 +346,15 @@ function onKey(e) {
       mode.value = "normal";
       return;
     }
+    if (["h", "j", "k", "l"].includes(key)) {
+      e.preventDefault();
+      move(key);
+      return;
+    }
+    if (key === "n") {
+      noteMode.value = !noteMode.value;
+      return;
+    }
     if (selected.value === null) return;
     if (key >= "1" && key <= "9") {
       setCell(selected.value, parseInt(key));

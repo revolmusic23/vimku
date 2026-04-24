@@ -1,39 +1,42 @@
 /* Catppuccin Mocha */
 :root {
-  --base:    #1e1e2e;
-  --mantle:  #181825;
-  --crust:   #11111b;
+  --base: #1e1e2e;
+  --mantle: #181825;
+  --crust: #11111b;
   --surface0: #313244;
   --surface1: #45475a;
   --surface2: #585b70;
   --overlay0: #6c7086;
   --overlay1: #7f849c;
-  --text:    #cdd6f4;
+  --text: #cdd6f4;
   --subtext0: #a6adc8;
   --subtext1: #bac2de;
   --lavender: #b4befe;
-  --blue:    #89b4fa;
+  --blue: #89b4fa;
   --sapphire: #74c7ec;
-  --sky:     #89dceb;
-  --teal:    #94e2d5;
-  --green:   #a6e3a1;
-  --yellow:  #f9e2af;
-  --peach:   #fab387;
-  --maroon:  #eba0ac;
-  --red:     #f38ba8;
-  --mauve:   #cba6f7;
-  --pink:    #f5c2e7;
+  --sky: #89dceb;
+  --teal: #94e2d5;
+  --green: #a6e3a1;
+  --yellow: #f9e2af;
+  --peach: #fab387;
+  --maroon: #eba0ac;
+  --red: #f38ba8;
+  --mauve: #cba6f7;
+  --pink: #f5c2e7;
   --flamingo: #f2cdcd;
   --rosewater: #f5e0dc;
 }
 
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
 }
 
-html, body {
+html,
+body {
   background: var(--base);
   color: var(--text);
   font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
@@ -48,6 +51,20 @@ html, body {
   align-items: center;
   justify-content: center;
   padding: 2rem;
+}
+
+@media (max-width: 600px) {
+  #app {
+    padding: 0.5rem;
+    justify-content: flex-start;
+    padding-top: 1rem;
+  }
+
+  button,
+  select {
+    font-size: 0.8rem;
+    padding: 0.25rem 0.5rem;
+  }
 }
 
 button {

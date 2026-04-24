@@ -193,9 +193,13 @@ export function useSudoku() {
       else s.add(num)
       notes.value[idx] = s
     } else {
-      board.value[idx] = num
-      notes.value[idx] = new Set()
-      clearPeerNotes(idx, num)
+      if (board.value[idx] === num) {
+        board.value[idx] = 0
+      } else {
+        board.value[idx] = num
+        notes.value[idx] = new Set()
+        clearPeerNotes(idx, num)
+      }
       checkWin()
     }
   }

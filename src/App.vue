@@ -9,14 +9,28 @@
           <option value="hard">hard</option>
         </select>
         <button @click="newGame(difficulty)">new game</button>
-        <button @click="undo">undo [u]</button>
-        <button @click="hint">hint</button>
-        <button :class="{ active: noteMode }" @click="noteMode = !noteMode">
+        <!-- desktop controls -->
+        <button v-if="!isMobile" @click="undo">undo [u]</button>
+        <button v-if="!isMobile" @click="hint">hint</button>
+        <button v-if="!isMobile" :class="{ active: noteMode }" @click="noteMode = !noteMode">
           note [n]{{ noteMode ? ' ON' : '' }}
         </button>
-        <button :class="{ active: vimMode }" @click="toggleVimMode">
+        <button v-if="!isMobile" :class="{ active: vimMode }" @click="toggleVimMode">
           vim{{ vimMode ? ' ON' : '' }}
         </button>
+        <!-- mobile controls -->
+        <button v-if="isMobile" @click="hint">hint</button>
+        <button
+          v-if="isMobile"
+          @click="
+            () => {
+              if (selected !== null) clearCell(selected)
+            }
+          "
+        >
+          x
+        </button>
+        <button v-if="isMobile" @click="undo">u</button>
       </div>
     </header>
 
@@ -39,16 +53,28 @@
       </div>
     </div>
 
-    <DigitTray :board="board" />
+    <DigitTray
+      :board="board"
+      :is-mobile="isMobile"
+      :selected="selected"
+      @fill="onTrayFill"
+      @fill-note="onTrayFillNote"
+    />
 
-    <div v-if="showSolved" class="solved-overlay">
+    <div v-if="showSolved" class="solved-overlay" @click.self="showSolved = false">
       <div class="solved-box">
         <div class="solved-title">solved</div>
-        <div class="help-row">
-          <span class="help-cmd">n</span>
-          <span class="help-desc">new game</span>
-        </div>
-        <div class="help-close">Esc to review board</div>
+        <template v-if="isMobile">
+          <button class="solved-btn" @click="newGame(difficulty)">new game</button>
+          <button class="solved-btn" @click="showSolved = false">review</button>
+        </template>
+        <template v-else>
+          <div class="help-row">
+            <span class="help-cmd">n</span>
+            <span class="help-desc">new game</span>
+          </div>
+          <div class="help-close">Esc to review board</div>
+        </template>
       </div>
     </div>
 
@@ -77,7 +103,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useSudoku, type Difficulty, type Direction } from './composables/useSudoku'
 import DigitTray from './components/DigitTray.vue'
 
@@ -108,6 +134,19 @@ const cmdMode = ref(false)
 const cmdBuf = ref('')
 const showHelp = ref(false)
 const showSolved = ref(false)
+const isMobile = ref(false)
+
+function checkMobile() {
+  isMobile.value = window.innerWidth <= 600
+}
+
+watch(isMobile, (mobile) => {
+  if (mobile) {
+    vimMode.value = false
+    mode.value = 'normal'
+    countBuf.value = ''
+  }
+})
 
 function newGame(d?: Difficulty) {
   _newGame(d)
@@ -149,14 +188,18 @@ function onCompositionStart() {
 }
 
 onMounted(() => {
+  checkMobile()
+  if (isMobile.value) vimMode.value = false
   newGame()
   window.addEventListener('keydown', onKey)
   window.addEventListener('compositionstart', onCompositionStart)
+  window.addEventListener('resize', checkMobile)
 })
 
 onUnmounted(() => {
   window.removeEventListener('keydown', onKey)
   window.removeEventListener('compositionstart', onCompositionStart)
+  window.removeEventListener('resize', checkMobile)
 })
 
 function toggleVimMode() {
@@ -170,6 +213,20 @@ function onCellClick(idx: number) {
   if (vimMode.value && mode.value === 'normal') {
     mode.value = 'insert'
   }
+}
+
+function onTrayFill(d: number) {
+  if (selected.value === null) return
+  setCell(selected.value, d)
+  if (won.value) showSolved.value = true
+}
+
+function onTrayFillNote(d: number) {
+  if (selected.value === null) return
+  const prev = noteMode.value
+  noteMode.value = true
+  setCell(selected.value, d)
+  noteMode.value = prev
 }
 
 function cellClass(idx: number) {
@@ -456,12 +513,21 @@ function onKey(e: KeyboardEvent) {
 
 <style scoped>
 .app {
+  --cell: 52px;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 1rem;
   outline: none;
   position: relative;
+}
+
+@media (max-width: 600px) {
+  .app {
+    --cell: clamp(32px, calc((100vw - 1rem - 4px) / 9), 52px);
+    gap: 0.6rem;
+    padding-bottom: 8rem;
+  }
 }
 
 header {
@@ -486,14 +552,14 @@ h1 {
 
 .board {
   display: grid;
-  grid-template-columns: repeat(9, 52px);
-  grid-template-rows: repeat(9, 52px);
+  grid-template-columns: repeat(9, var(--cell));
+  grid-template-rows: repeat(9, var(--cell));
   border: 2px solid var(--overlay0);
 }
 
 .cell {
-  width: 52px;
-  height: 52px;
+  width: var(--cell);
+  height: var(--cell);
   border: 1px solid color-mix(in srgb, var(--surface0) 50%, var(--surface1));
   display: flex;
   align-items: center;
@@ -585,6 +651,12 @@ h1 {
   margin-bottom: 0.25rem;
 }
 
+.solved-btn {
+  width: 100%;
+  padding: 0.5rem;
+  text-align: center;
+}
+
 .help-overlay {
   position: fixed;
   inset: 0;
@@ -633,7 +705,7 @@ h1 {
 }
 
 .statusline {
-  width: 468px;
+  width: calc(9 * var(--cell) + 4px);
   min-height: 1.4rem;
   display: flex;
   align-items: center;

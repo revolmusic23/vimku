@@ -1,5 +1,5 @@
 <template>
-  <div class="app" :class="vimMode ? `vim-${mode}` : ''">
+  <div class="app">
     <header>
       <h1>vimku</h1>
       <div class="controls">
@@ -34,28 +34,45 @@
       </div>
     </header>
 
-    <div class="board" @click.self="selected = null">
-      <div
-        v-for="(val, idx) in board"
-        :key="idx"
-        class="cell"
-        :class="cellClass(idx)"
-        @click="onCellClick(idx)"
-      >
-        <template v-if="val">
-          <span class="digit">{{ val }}</span>
-        </template>
-        <template v-else-if="notes[idx].size">
-          <div class="notes">
-            <span
-              v-for="n in 9"
-              :key="n"
-              class="note-digit"
-              :class="{ 'note-match': notes[idx].has(n) && selectedDigit === n }"
-              >{{ notes[idx].has(n) ? n : '' }}</span
-            >
+    <div class="board-area" :class="{ finding: isFinding }">
+      <div class="coord-header">
+        <span class="coord-corner"></span>
+        <span v-for="c in 9" :key="c" class="coord-label col-label">{{ c }}</span>
+      </div>
+      <div class="board-main">
+        <div class="coord-sidebar">
+          <span
+            v-for="r in 9"
+            :key="r"
+            class="coord-label row-label"
+            :class="{ 'coord-active': findSelectedRow === r }"
+            >{{ r }}</span
+          >
+        </div>
+        <div class="board" @click.self="selected = null">
+          <div
+            v-for="(val, idx) in board"
+            :key="idx"
+            class="cell"
+            :class="cellClass(idx)"
+            @click="onCellClick(idx)"
+          >
+            <template v-if="val">
+              <span class="digit">{{ val }}</span>
+            </template>
+            <template v-else-if="notes[idx].size">
+              <div class="notes">
+                <span
+                  v-for="n in 9"
+                  :key="n"
+                  class="note-digit"
+                  :class="{ 'note-match': notes[idx].has(n) && selectedDigit === n }"
+                  >{{ notes[idx].has(n) ? n : '' }}</span
+                >
+              </div>
+            </template>
           </div>
-        </template>
+        </div>
       </div>
     </div>
 
@@ -84,14 +101,14 @@
       </div>
     </div>
 
-    <div v-show="cmdMode || vimMode" class="statusline">
+    <div v-show="cmdMode || isFinding" class="statusline">
       <template v-if="cmdMode">
         <span class="cmd-bar">:{{ cmdBuf }}<span class="cmd-cursor">_</span></span>
         <span v-if="cmdHint" class="cmd-hint">{{ cmdHint }}</span>
       </template>
       <template v-else>
-        <span v-if="vimMode" class="mode-label" :class="mode">-- {{ mode.toUpperCase() }} --</span>
-        <span v-if="vimMode && countBuf" class="count-buf">{{ countBuf }}</span>
+        <span class="find-label">-- FIND --</span>
+        <span class="find-buf">{{ findDisplayBuf }}</span>
       </template>
     </div>
 
@@ -113,8 +130,6 @@ import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useSudoku, type Difficulty, type Direction } from './composables/useSudoku'
 import DigitTray from './components/DigitTray.vue'
 
-type VimMode = 'normal' | 'insert'
-
 const {
   board,
   given,
@@ -134,13 +149,21 @@ const {
 } = useSudoku()
 
 const vimMode = ref(true)
-const mode = ref<VimMode>('normal')
-const countBuf = ref('')
+const findBuf = ref('') // '' | 'f' | 'f{digit}'
 const cmdMode = ref(false)
 const cmdBuf = ref('')
 const showHelp = ref(false)
 const showSolved = ref(false)
 const isMobile = ref(false)
+
+const isFinding = computed(() => findBuf.value.length > 0)
+const findSelectedRow = computed(() =>
+  findBuf.value.length === 2 ? parseInt(findBuf.value[1]) : null,
+)
+const findDisplayBuf = computed(() => {
+  if (findBuf.value.length === 1) return '[_][_]'
+  return `[${findBuf.value[1]}][_]`
+})
 
 function checkMobile() {
   isMobile.value = window.innerWidth <= 600
@@ -149,8 +172,7 @@ function checkMobile() {
 watch(isMobile, (mobile) => {
   if (mobile) {
     vimMode.value = false
-    mode.value = 'normal'
-    countBuf.value = ''
+    findBuf.value = ''
   }
 })
 
@@ -165,13 +187,12 @@ const HELP_ENTRIES = [
   { key: 'hjkl', desc: 'move cursor' },
   { key: 'g / G', desc: 'jump to top / bottom row' },
   { key: '0 / $', desc: 'jump to first / last column' },
+  { key: 'f{r}{c}', desc: 'jump to row r, col c (vim)' },
   { key: '1-9', desc: 'fill digit' },
   { key: 'x / Del', desc: 'clear cell' },
   { key: 'u', desc: 'undo' },
   { key: 'n', desc: 'toggle note mode' },
   { key: 'v', desc: 'toggle vim mode' },
-  { key: 'i / a', desc: 'enter insert mode (vim)' },
-  { key: 'Esc', desc: 'normal mode (vim)' },
   { key: ':new', desc: 'new game' },
   { key: ':easy/medium/hard', desc: 'new game with difficulty' },
   { key: ':hint', desc: 'reveal selected cell' },
@@ -210,15 +231,12 @@ onUnmounted(() => {
 
 function toggleVimMode() {
   vimMode.value = !vimMode.value
-  mode.value = 'normal'
-  countBuf.value = ''
+  findBuf.value = ''
 }
 
 function onCellClick(idx: number) {
   selected.value = idx
-  if (vimMode.value && mode.value === 'normal') {
-    mode.value = 'insert'
-  }
+  findBuf.value = ''
 }
 
 function onTrayFill(d: number) {
@@ -249,6 +267,7 @@ function cellClass(idx: number) {
     'same-digit': selVal && board.value[idx] === selVal && selected.value !== idx,
     'box-right': col === 2 || col === 5,
     'box-bottom': row === 2 || row === 5,
+    'find-row': findSelectedRow.value !== null && row + 1 === findSelectedRow.value,
   }
 }
 
@@ -305,7 +324,6 @@ function onKey(e: KeyboardEvent) {
     return
   }
 
-  // Command mode takes priority
   if (cmdMode.value) {
     if (e.isComposing) return
     e.preventDefault()
@@ -335,6 +353,28 @@ function onKey(e: KeyboardEvent) {
     return
   }
 
+  // find mode (vim only)
+  if (isFinding.value) {
+    e.preventDefault()
+    if (key === 'Escape') {
+      findBuf.value = ''
+      return
+    }
+    if (key >= '1' && key <= '9') {
+      if (findBuf.value.length === 1) {
+        findBuf.value = 'f' + key
+      } else {
+        const row = parseInt(findBuf.value[1]) - 1
+        const col = parseInt(key) - 1
+        selected.value = row * 9 + col
+        findBuf.value = ''
+      }
+      return
+    }
+    findBuf.value = ''
+    return
+  }
+
   if (key === '?') {
     e.preventDefault()
     showHelp.value = !showHelp.value
@@ -346,175 +386,64 @@ function onKey(e: KeyboardEvent) {
     return
   }
 
-  // Enter command mode
   if (key === ':') {
     e.preventDefault()
     cmdMode.value = true
     cmdBuf.value = ''
-    countBuf.value = ''
-    mode.value = 'normal'
     return
   }
 
-  if (!vimMode.value) {
-    if (['h', 'j', 'k', 'l'].includes(key)) {
-      e.preventDefault()
-      move(key as Direction)
-      return
-    }
-    if (key === 'g') {
-      e.preventDefault()
-      jumpTo('top')
-      return
-    }
-    if (key === 'G') {
-      e.preventDefault()
-      jumpTo('bottom')
-      return
-    }
-    if (key === '0') {
-      e.preventDefault()
-      jumpTo('start')
-      return
-    }
-    if (key === '$') {
-      e.preventDefault()
-      jumpTo('end')
-      return
-    }
-    if (selected.value === null) return
-    if (key >= '1' && key <= '9') {
-      setCell(selected.value, parseInt(key))
-      if (won.value) showSolved.value = true
-      return
-    }
-    if (key === 'x' || key === 'Delete' || key === 'Backspace') {
-      clearCell(selected.value)
-      return
-    }
-    if (key === 'u') {
-      undo()
-      return
-    }
-    if (key === 'n') {
-      noteMode.value = !noteMode.value
-      return
-    }
+  if (['h', 'j', 'k', 'l'].includes(key)) {
+    e.preventDefault()
+    move(key as Direction)
+    return
+  }
+  if (key === 'g') {
+    e.preventDefault()
+    jumpTo('top')
+    return
+  }
+  if (key === 'G') {
+    e.preventDefault()
+    jumpTo('bottom')
+    return
+  }
+  if (key === '0') {
+    e.preventDefault()
+    jumpTo('start')
+    return
+  }
+  if (key === '$') {
+    e.preventDefault()
+    jumpTo('end')
     return
   }
 
-  // vim mode ON
-  if (mode.value === 'normal') {
-    if (key >= '1' && key <= '9') {
-      e.preventDefault()
-      countBuf.value += key
-      return
-    }
-    if (key === '0') {
-      e.preventDefault()
-      jumpTo('start')
-      countBuf.value = ''
-      return
-    }
-    if (key === '$') {
-      e.preventDefault()
-      jumpTo('end')
-      countBuf.value = ''
-      return
-    }
-    if (key === 'g') {
-      e.preventDefault()
-      jumpTo('top')
-      countBuf.value = ''
-      return
-    }
-    if (key === 'G') {
-      e.preventDefault()
-      jumpTo('bottom')
-      countBuf.value = ''
-      return
-    }
-    if (['h', 'j', 'k', 'l'].includes(key)) {
-      e.preventDefault()
-      const count = Math.min(parseInt(countBuf.value) || 1, 8)
-      for (let i = 0; i < count; i++) move(key as Direction)
-      countBuf.value = ''
-      return
-    }
-    if (key === 'i' || key === 'a') {
-      e.preventDefault()
-      if (selected.value === null) selected.value = 0
-      mode.value = 'insert'
-      countBuf.value = ''
-      return
-    }
-    if (key === 'x' || key === 'Delete' || key === 'Backspace') {
-      if (selected.value !== null) clearCell(selected.value)
-      countBuf.value = ''
-      return
-    }
-    if (key === 'u') {
-      undo()
-      countBuf.value = ''
-      return
-    }
-    if (key === 'n') {
-      noteMode.value = !noteMode.value
-      countBuf.value = ''
-      return
-    }
-    if (key === 'Escape') {
-      countBuf.value = ''
-      return
-    }
-    countBuf.value = ''
+  if (vimMode.value && key === 'f') {
+    e.preventDefault()
+    if (selected.value === null) selected.value = 0
+    findBuf.value = 'f'
+    return
   }
 
-  if (mode.value === 'insert') {
-    if (key === 'Escape') {
-      e.preventDefault()
-      mode.value = 'normal'
-      return
-    }
-    if (['h', 'j', 'k', 'l'].includes(key)) {
-      e.preventDefault()
-      move(key as Direction)
-      return
-    }
-    if (key === 'g') {
-      e.preventDefault()
-      jumpTo('top')
-      return
-    }
-    if (key === 'G') {
-      e.preventDefault()
-      jumpTo('bottom')
-      return
-    }
-    if (key === '0') {
-      e.preventDefault()
-      jumpTo('start')
-      return
-    }
-    if (key === '$') {
-      e.preventDefault()
-      jumpTo('end')
-      return
-    }
-    if (key === 'n') {
-      noteMode.value = !noteMode.value
-      return
-    }
-    if (selected.value === null) return
-    if (key >= '1' && key <= '9') {
-      setCell(selected.value, parseInt(key))
-      if (won.value) showSolved.value = true
-      return
-    }
-    if (key === 'x' || key === 'Delete' || key === 'Backspace') {
-      clearCell(selected.value)
-      return
-    }
+  if (selected.value === null) return
+
+  if (key >= '1' && key <= '9') {
+    setCell(selected.value, parseInt(key))
+    if (won.value) showSolved.value = true
+    return
+  }
+  if (key === 'x' || key === 'Delete' || key === 'Backspace') {
+    clearCell(selected.value)
+    return
+  }
+  if (key === 'u') {
+    undo()
+    return
+  }
+  if (key === 'n') {
+    noteMode.value = !noteMode.value
+    return
   }
 }
 </script>
@@ -558,6 +487,67 @@ h1 {
   justify-content: center;
 }
 
+/* board area with coordinate labels */
+.board-area {
+  display: flex;
+  flex-direction: column;
+}
+
+.coord-header {
+  display: flex;
+  align-items: center;
+  height: 1.4rem;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.board-area.finding .coord-header {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.coord-corner {
+  width: 1.5rem;
+  flex-shrink: 0;
+}
+
+.coord-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  color: var(--overlay1);
+}
+
+.col-label {
+  width: var(--cell);
+}
+
+.board-main {
+  display: flex;
+}
+
+.coord-sidebar {
+  display: flex;
+  flex-direction: column;
+  width: 1.5rem;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.board-area.finding .coord-sidebar {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.row-label {
+  height: var(--cell);
+}
+
+.row-label.coord-active {
+  color: var(--yellow);
+}
+
 .board {
   display: grid;
   grid-template-columns: repeat(9, var(--cell));
@@ -590,15 +580,11 @@ h1 {
 .cell.same-digit {
   background: color-mix(in srgb, var(--peach) 30%, var(--base));
 }
-
-/* default (non-vim) and insert mode: green */
 .cell.selected {
   background: color-mix(in srgb, var(--green) 30%, var(--base));
 }
-
-/* normal mode: peach (can't insert) */
-.vim-normal .cell.selected {
-  background: color-mix(in srgb, var(--peach) 40%, var(--base));
+.cell.find-row {
+  background: color-mix(in srgb, var(--yellow) 15%, var(--base));
 }
 
 .cell.given .digit {
@@ -745,20 +731,14 @@ h1 {
   color: var(--overlay1);
 }
 
-.count-buf {
+.find-label {
   font-size: 0.85rem;
-  color: var(--overlay2);
-}
-
-.mode-label {
-  font-size: 0.85rem;
+  color: var(--yellow);
   letter-spacing: 0.05em;
 }
 
-.mode-label.normal {
-  color: var(--lavender);
-}
-.mode-label.insert {
-  color: var(--green);
+.find-buf {
+  font-size: 0.85rem;
+  color: var(--overlay2);
 }
 </style>

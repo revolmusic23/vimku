@@ -115,7 +115,7 @@ export function useSudoku() {
     given.value = result.puzzle.map((v) => v !== 0)
     notes.value = Array.from({ length: 81 }, () => new Set())
     history.value = []
-    selected.value = null
+    selected.value = 0
     won.value = false
     noteMode.value = false
   }

@@ -158,9 +158,10 @@ const isMobile = ref(false)
 
 const isFinding = computed(() => findBuf.value.length > 0)
 const findSelectedRow = computed(() =>
-  findBuf.value.length === 2 ? parseInt(findBuf.value[1]) : null,
+  findBuf.value.startsWith('f') && findBuf.value.length === 2 ? parseInt(findBuf.value[1]) : null,
 )
 const findDisplayBuf = computed(() => {
+  if (findBuf.value.startsWith('/')) return `/${findBuf.value[1] ?? '_'}`
   if (findBuf.value.length === 1) return '[_][_]'
   return `[${findBuf.value[1]}][_]`
 })
@@ -188,6 +189,7 @@ const HELP_ENTRIES = [
   { key: 'g / G', desc: 'jump to top / bottom row' },
   { key: '0 / $', desc: 'jump to first / last column' },
   { key: 'f{r}{c}', desc: 'jump to row r, col c (vim)' },
+  { key: '/{d}', desc: 'jump to nearest cell with digit d' },
   { key: '1-9', desc: 'fill digit' },
   { key: 'x / Del', desc: 'clear cell' },
   { key: 'u', desc: 'undo' },
@@ -281,6 +283,24 @@ function isHighlighted(idx: number) {
   return sRow === iRow || sCol === iCol
 }
 
+function findNearest(digit: number): number | null {
+  const cur = selected.value ?? 0
+  const curRow = Math.floor(cur / 9)
+  const curCol = cur % 9
+  let bestIdx: number | null = null
+  let bestDist = Infinity
+  for (let i = 0; i < 81; i++) {
+    if (board.value[i] === digit) {
+      const dist = Math.abs(Math.floor(i / 9) - curRow) + Math.abs((i % 9) - curCol)
+      if (dist > 0 && dist < bestDist) {
+        bestDist = dist
+        bestIdx = i
+      }
+    }
+  }
+  return bestIdx
+}
+
 function execCmd(cmd: string) {
   switch (cmd) {
     case 'new':
@@ -353,10 +373,18 @@ function onKey(e: KeyboardEvent) {
     return
   }
 
-  // find mode (vim only)
+  // find / search mode (vim only)
   if (isFinding.value) {
     e.preventDefault()
     if (key === 'Escape') {
+      findBuf.value = ''
+      return
+    }
+    if (findBuf.value.startsWith('/')) {
+      if (key >= '1' && key <= '9') {
+        const target = findNearest(parseInt(key))
+        if (target !== null) selected.value = target
+      }
       findBuf.value = ''
       return
     }
@@ -423,6 +451,12 @@ function onKey(e: KeyboardEvent) {
     e.preventDefault()
     if (selected.value === null) selected.value = 0
     findBuf.value = 'f'
+    return
+  }
+
+  if (vimMode.value && key === '/') {
+    e.preventDefault()
+    findBuf.value = '/'
     return
   }
 
